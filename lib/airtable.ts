@@ -124,7 +124,9 @@ async function airtableFetch(
   init?: RequestInit & { revalidate?: number }
 ): Promise<Response> {
   const { revalidate = 30, ...rest } = init ?? {};
-  const res = await fetch(`https://api.airtable.com/v0/${BASE_ID}/${path}`, {
+  const sep = path.includes("?") ? "&" : "?";
+  const url = `https://api.airtable.com/v0/${BASE_ID}/${path}${sep}returnFieldsByFieldId=true`;
+  const res = await fetch(url, {
     ...rest,
     headers: {
       Authorization: `Bearer ${API_KEY}`,
@@ -237,11 +239,8 @@ function toCompletion(r: AirtableRecord): Completion {
 }
 
 export async function listMembers(): Promise<Member[]> {
-  const params = new URLSearchParams();
-  params.set("sort[0][field]", "name");
-  params.set("sort[0][direction]", "asc");
-  const records = await listAll(TABLES.members, params, 30);
-  return records.map(toMember);
+  const records = await listAll(TABLES.members, new URLSearchParams(), 30);
+  return records.map(toMember).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function getMember(id: string): Promise<Member | null> {
