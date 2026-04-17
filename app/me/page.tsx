@@ -51,7 +51,12 @@ export default async function MePage() {
             Edit character →
           </Link>
         </div>
-        <ChallengePath challenges={weekChallenges} hasLaunched={false} />
+        <ChallengePath
+          challenges={weekChallenges}
+          hasLaunched={new Date(week.launchAt).getTime() <= Date.now()}
+          weekNumber={week.weekNumber}
+          weekTheme={week.theme}
+        />
       </div>
     </MeClient>
   );

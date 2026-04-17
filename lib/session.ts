@@ -28,3 +28,13 @@ export function markOnboarded(): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(ONBOARDED_KEY, "1");
 }
+
+export function hasSeenWeekUnlock(weekNumber: number): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(`bff-fr:unlock:w${weekNumber}`) === "1";
+}
+
+export function markSeenWeekUnlock(weekNumber: number): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(`bff-fr:unlock:w${weekNumber}`, "1");
+}
