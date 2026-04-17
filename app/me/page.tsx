@@ -8,7 +8,7 @@ import { CountdownToFriday } from "@/components/reveal/CountdownToFriday";
 import { ChallengePath } from "@/components/challenges/ChallengePath";
 import { MeClient } from "@/components/me/MeClient";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function MePage() {
   const [challenges, weeks] = await Promise.all([

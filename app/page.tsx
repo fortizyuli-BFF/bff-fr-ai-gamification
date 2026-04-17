@@ -2,7 +2,7 @@ import { listMembers } from "@/lib/airtable";
 import { BrandHeader } from "@/components/brand/BrandHeader";
 import { MemberPicker } from "@/components/landing/MemberPicker";
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function LandingPage() {
   const members = await listMembers();
