@@ -212,10 +212,20 @@ function toWeek(r: AirtableRecord): Week {
   };
 }
 
+function extractLinkId(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null && "id" in value) {
+    const id = (value as { id: unknown }).id;
+    return typeof id === "string" ? id : "";
+  }
+  return "";
+}
+
 function toCompletion(r: AirtableRecord): Completion {
   const f = r.fields;
-  const memberLinks = (f[FIELDS.completion.member] as string[]) ?? [];
-  const challengeLinks = (f[FIELDS.completion.challenge] as string[]) ?? [];
+  const memberLinks = (f[FIELDS.completion.member] as unknown[]) ?? [];
+  const challengeLinks = (f[FIELDS.completion.challenge] as unknown[]) ?? [];
   let reactions: Record<string, string> = {};
   const raw = f[FIELDS.completion.reactions] as string | undefined;
   if (raw) {
@@ -227,8 +237,8 @@ function toCompletion(r: AirtableRecord): Completion {
   }
   return {
     id: r.id,
-    memberId: memberLinks[0] ?? "",
-    challengeId: challengeLinks[0] ?? "",
+    memberId: extractLinkId(memberLinks[0]),
+    challengeId: extractLinkId(challengeLinks[0]),
     completedAt: (f[FIELDS.completion.completedAt] as string) ?? "",
     proofText: (f[FIELDS.completion.proofText] as string) ?? null,
     proofUrl: (f[FIELDS.completion.proofUrl] as string) ?? null,
@@ -263,6 +273,7 @@ export async function createMember(input: {
     method: "POST",
     revalidate: 0,
     body: JSON.stringify({
+      returnFieldsByFieldId: true,
       fields: {
         [FIELDS.member.name]: input.name.trim(),
         ...(input.role ? { [FIELDS.member.role]: input.role } : {}),
@@ -293,7 +304,7 @@ export async function updateMemberAvatar(
   const res = await airtableFetch(`${TABLES.members}/${id}`, {
     method: "PATCH",
     revalidate: 0,
-    body: JSON.stringify({ fields }),
+    body: JSON.stringify({ returnFieldsByFieldId: true, fields }),
   });
   const rec = (await res.json()) as AirtableRecord;
   return toMember(rec);
@@ -323,4 +334,36 @@ export async function listCompletions(): Promise<Completion[]> {
   params.set("sort[0][direction]", "desc");
   const records = await listAll(TABLES.completions, params, 15);
   return records.map(toCompletion);
+}
+
+export async function listCompletionsForMember(
+  memberId: string
+): Promise<Completion[]> {
+  // Airtable formulas on linked-record fields return the primary DISPLAY
+  // value (e.g. "Fran"), not the record ID — so we can't safely filterByFormula
+  // by memberId. The dataset is small; fetch and filter in app.
+  const all = await listCompletions();
+  return all.filter((c) => c.memberId === memberId);
+}
+
+export async function createCompletion(input: {
+  memberId: string;
+  challengeId: string;
+  proofText?: string;
+  proofUrl?: string;
+}): Promise<Completion> {
+  const fields: Record<string, unknown> = {
+    [FIELDS.completion.member]: [input.memberId],
+    [FIELDS.completion.challenge]: [input.challengeId],
+    [FIELDS.completion.completedAt]: new Date().toISOString(),
+  };
+  if (input.proofText) fields[FIELDS.completion.proofText] = input.proofText;
+  if (input.proofUrl) fields[FIELDS.completion.proofUrl] = input.proofUrl;
+  const res = await airtableFetch(TABLES.completions, {
+    method: "POST",
+    revalidate: 0,
+    body: JSON.stringify({ returnFieldsByFieldId: true, fields }),
+  });
+  const rec = (await res.json()) as AirtableRecord;
+  return toCompletion(rec);
 }

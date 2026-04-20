@@ -18,7 +18,7 @@ export default async function LandingPage() {
             The FR team is going AI-native.
             <br />
             <span className="text-foreground/60">
-              This is where we keep score.
+              This is where the team notices itself getting sharper.
             </span>
           </h1>
           <p className="mt-6 text-base text-foreground/70 sm:text-lg">

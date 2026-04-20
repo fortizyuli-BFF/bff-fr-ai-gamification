@@ -13,11 +13,18 @@ export function pointsForWeek(
   const weekChallengeIds = new Set(
     challenges.filter((c) => c.weekNumber === weekNumber).map((c) => c.id)
   );
-  const mine = completions.filter(
-    (c) => c.memberId === memberId && weekChallengeIds.has(c.challengeId)
+  const mineDeduped = new Set(
+    completions
+      .filter(
+        (c) => c.memberId === memberId && weekChallengeIds.has(c.challengeId)
+      )
+      .map((c) => c.challengeId)
   );
   const byId = new Map(challenges.map((c) => [c.id, c]));
-  return mine.reduce((acc, c) => acc + (byId.get(c.challengeId)?.points ?? 0), 0);
+  return Array.from(mineDeduped).reduce(
+    (acc, id) => acc + (byId.get(id)?.points ?? 0),
+    0
+  );
 }
 
 export function weeklyProgress(

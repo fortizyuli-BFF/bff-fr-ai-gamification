@@ -71,7 +71,7 @@ export function CountdownToFriday({
         </div>
 
         <p className="mt-6 max-w-lg text-sm text-foreground/70">
-          Five challenges drop at once. Some are quick wins, some need a real
+          Seven challenges drop at once. Some are quick wins, some need a real
           week. You&apos;ll tackle them in whatever order makes sense for you.
         </p>
       </div>

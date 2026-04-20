@@ -18,6 +18,10 @@ type Props = {
   weekNumber: number;
   weekTheme: string;
   completedIds?: Set<string>;
+  onComplete?: (
+    challengeId: string,
+    proof: { proofText?: string; proofUrl?: string }
+  ) => Promise<void>;
 };
 
 export function ChallengePath({
@@ -26,6 +30,7 @@ export function ChallengePath({
   weekNumber,
   weekTheme,
   completedIds,
+  onComplete,
 }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [ceremonyOpen, setCeremonyOpen] = useState(false);
@@ -104,7 +109,12 @@ export function ChallengePath({
       <ChallengeDrawer
         challenge={open}
         hasLaunched={hasLaunched}
+        completed={open ? completedIds?.has(open.id) ?? false : false}
         onClose={() => setOpenId(null)}
+        onComplete={async (id, proof) => {
+          if (!onComplete) return;
+          await onComplete(id, proof);
+        }}
       />
 
       <WeekUnlockCeremony

@@ -157,8 +157,8 @@ export function WeekUnlockCeremony({
                   style={{ backgroundColor: GOLD }}
                 />
                 <p className="mt-6 max-w-md text-sm text-white/70">
-                  Five challenges. Three to set you up, two to put the tools
-                  into real work. Tap any card to see the how-to.
+                  Seven challenges. Four to get you set up, three to put the
+                  tools into real work. Tap any card to see the how-to.
                 </p>
               </motion.div>
             )}

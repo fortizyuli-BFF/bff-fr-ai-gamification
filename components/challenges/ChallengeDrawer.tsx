@@ -1,21 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Copy, ExternalLink, X } from "lucide-react";
+import { Check, Copy, ExternalLink, Loader2, X } from "lucide-react";
+import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import type { Challenge } from "@/lib/airtable";
 import { helpFor } from "@/lib/weekContent";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 type Props = {
   challenge: Challenge | null;
   hasLaunched: boolean;
+  completed: boolean;
   onClose: () => void;
+  onComplete: (
+    challengeId: string,
+    proof: { proofText?: string; proofUrl?: string }
+  ) => Promise<void>;
 };
 
-export function ChallengeDrawer({ challenge, hasLaunched, onClose }: Props) {
+export function ChallengeDrawer({
+  challenge,
+  hasLaunched,
+  completed,
+  onClose,
+  onComplete,
+}: Props) {
   const [copied, setCopied] = useState(false);
+  const [proof, setProof] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setProof("");
+    setSubmitting(false);
+  }, [challenge?.id]);
 
   if (!challenge) return null;
 
@@ -23,6 +43,11 @@ export function ChallengeDrawer({ challenge, hasLaunched, onClose }: Props) {
   const askUrl = help
     ? `https://claude.ai/new?q=${encodeURIComponent(help.askClaudePrompt)}`
     : "https://claude.ai";
+
+  const needsProof =
+    challenge.proofType === "URL" || challenge.proofType === "Text";
+  const canSubmit = hasLaunched && !completed && !submitting &&
+    (!needsProof || proof.trim().length > 0);
 
   const copyPrompt = async () => {
     if (!help) return;
@@ -33,6 +58,51 @@ export function ChallengeDrawer({ challenge, hasLaunched, onClose }: Props) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Couldn't copy — try again");
+    }
+  };
+
+  const fireConfetti = () => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+    const gold = ["#CB9D6B", "#F0C69A", "#ffffff"];
+    confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { x: 0.5, y: 0.7 },
+      colors: gold,
+      gravity: 0.9,
+      ticks: 180,
+    });
+  };
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    const value = proof.trim();
+    const proofPayload =
+      challenge.proofType === "URL"
+        ? { proofUrl: value }
+        : challenge.proofType === "Text"
+          ? { proofText: value }
+          : {};
+    try {
+      await onComplete(challenge.id, proofPayload);
+      fireConfetti();
+      toast.success(
+        challenge.feedbackOnComplete ||
+          `+${challenge.points} pts — ${challenge.title} done`,
+        { duration: 5000 }
+      );
+      setTimeout(() => onClose(), 1100);
+    } catch (err) {
+      setSubmitting(false);
+      const msg =
+        err instanceof Error ? err.message : "Couldn't save — try again";
+      toast.error(msg);
     }
   };
 
@@ -74,6 +144,14 @@ export function ChallengeDrawer({ challenge, hasLaunched, onClose }: Props) {
                   <span className="text-border">·</span>
                   <span className="font-display-caps text-[10px] text-accent-foreground">
                     Previewing
+                  </span>
+                </>
+              )}
+              {completed && (
+                <>
+                  <span className="text-border">·</span>
+                  <span className="font-display-caps text-[10px] text-primary">
+                    ✓ Done
                   </span>
                 </>
               )}
@@ -203,15 +281,69 @@ export function ChallengeDrawer({ challenge, hasLaunched, onClose }: Props) {
 
         {/* Footer */}
         <div className="border-t border-border bg-card px-6 py-4 sm:px-8">
-          {hasLaunched ? (
-            <Button className="w-full">Mark as done</Button>
-          ) : (
+          {!hasLaunched ? (
             <div className="flex items-center justify-between gap-3 text-sm">
               <p className="text-muted-foreground">
                 Unlocks Friday 16:00 London.
               </p>
               <Button variant="outline" onClick={onClose}>
                 Got it
+              </Button>
+            </div>
+          ) : completed ? (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <p className="flex items-center gap-2 text-foreground/80">
+                <Check className="h-4 w-4 text-primary" />
+                You earned {challenge.points} pts on this one.
+              </p>
+              <Button variant="outline" onClick={onClose}>
+                Close
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {needsProof && (
+                <div>
+                  <label
+                    htmlFor="proof"
+                    className="mb-1 block font-display-caps text-[10px] text-muted-foreground"
+                  >
+                    {challenge.proofPrompt ||
+                      (challenge.proofType === "URL"
+                        ? "Paste the link"
+                        : "Paste your proof")}
+                  </label>
+                  <Input
+                    id="proof"
+                    type={challenge.proofType === "URL" ? "url" : "text"}
+                    inputMode={
+                      challenge.proofType === "URL" ? "url" : undefined
+                    }
+                    placeholder={
+                      challenge.proofType === "URL"
+                        ? "https://…"
+                        : "Paste your proof here"
+                    }
+                    value={proof}
+                    onChange={(e) => setProof(e.target.value)}
+                    disabled={submitting}
+                  />
+                </div>
+              )}
+              <Button
+                type="button"
+                className="w-full"
+                disabled={!canSubmit}
+                onClick={submit}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  <>Mark as done · +{challenge.points} pts</>
+                )}
               </Button>
             </div>
           )}

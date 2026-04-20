@@ -37,14 +37,39 @@ const HELP_BY_TITLE: Record<string, ChallengeHelp> = {
     howTo: [
       "Go to notion.so and sign up with your BFF email.",
       "Choose 'For work' and skip the template picker.",
-      "Create a page called 'FR — [Your Name]' — this is your personal landing page.",
-      "Add three sub-pages: Meeting Notes · Donors · Prompts.",
-      "Paste the URL of your landing page below.",
+      "Accept the default empty workspace — you'll seed the real structure in the next challenge with Claude.",
+      "Tick the box below to confirm you're in.",
     ],
     askClaudePrompt:
-      "I'm building a personal Notion workspace for fundraising at a football charity. I have 3 pages: Meeting Notes, Donors, Prompts. Suggest the exact property structure (database columns) for each so I don't have to think about it again. Keep it minimal — I'd rather add later than delete.",
+      "I just signed up for Notion for the first time. I'm in fundraising at a football charity. In 3 bullets, what's the one mental model I should hold about Notion so I don't over-organise it in the first week?",
     tipline:
-      "Notion is just the filing cabinet. The goal is to know where Granola transcripts and donor briefs will live.",
+      "Don't build the filing cabinet by hand — the next challenge has Claude do it for you in one prompt.",
+  },
+  "Connect Claude to Granola and Notion": {
+    howTo: [
+      "Open claude.ai and go to Settings → Connectors (or the Connect menu in a new chat).",
+      "Enable the Granola connector — sign in with the same account you used for Granola.",
+      "Enable the Notion connector — approve access to your workspace when prompted.",
+      "Run a sanity prompt: ask Claude 'What was my last Granola meeting about?' — confirm you get real content back.",
+      "Tick the box below once both are working.",
+    ],
+    askClaudePrompt:
+      "I just connected you to Granola and Notion. First, confirm you can see both by listing my 3 most recent Granola meetings and naming one top-level page in my Notion. Then in 2 bullets, tell me the one habit I should build this week that takes advantage of both being connected.",
+    tipline:
+      "This is the unlock step. Once connectors are live, every later challenge is a one-sentence prompt away.",
+  },
+  "Seed your Notion structure with Claude": {
+    howTo: [
+      "Make sure the previous challenge is done — Claude needs the Notion connector live.",
+      "Open a new Claude chat and paste the prompt on the right (edit the bracketed bits for your name and working style).",
+      "Claude will create a 'FR — [Your Name]' landing page with sub-pages. Watch it work; it only takes a few seconds.",
+      "Hop into Notion and check the result. Rename or add pages if anything feels off — you own this corner.",
+      "Paste the URL of your new landing page below.",
+    ],
+    askClaudePrompt:
+      "Using the Notion connector, create a new top-level page in my workspace called 'FR — [Your Name]'. Under it, add these sub-pages: Meeting Notes, Donors, Prompts, Scratchpad. For Meeting Notes and Donors, make them databases with sensible properties (date, who, summary for meetings; name, stage, last-touch for donors). Keep it minimal — I'd rather add later than delete. Confirm when done and give me the link.",
+    tipline:
+      "Tommy owns the shared folders. This one is yours — Claude just saved you an hour of clicking.",
   },
   "Record 5 meetings in Granola": {
     howTo: [
