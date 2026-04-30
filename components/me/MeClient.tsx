@@ -9,6 +9,7 @@ import { ChallengePath } from "@/components/challenges/ChallengePath";
 import { CountdownToFriday } from "@/components/reveal/CountdownToFriday";
 import { WeekComingSoon } from "@/components/reveal/WeekComingSoon";
 import { PointsPhilosophy } from "@/components/progress/PointsPhilosophy";
+import { SkillCard } from "@/components/skills/SkillCard";
 import type { Challenge, Completion, Member } from "@/lib/airtable";
 import { getSessionMemberId, markOnboarded } from "@/lib/session";
 
@@ -221,6 +222,12 @@ export function MeClient({
               onComplete={onComplete}
             />
           </div>
+
+          <SkillCard
+            memberId={member.id}
+            profile={member.skillProfile}
+            onSaved={(m) => setMember(m)}
+          />
 
           {!hasNextWeekDefined && <WeekComingSoon weekNumber={weekNumber + 1} />}
 
