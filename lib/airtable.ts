@@ -26,6 +26,8 @@ export const FIELDS = {
     avatarPants: "fldjziYOIzEq6IxZF",
     avatarShoes: "fldhev83VUxeC3Pss",
     avatarPrimaryColor: "fldWg0nGbjeQFNFGL",
+    passcodeHash: "fldCufYZRYBi7s0ws",
+    skillProfile: "fldOdeRP9ZgGODSua",
   },
   challenge: {
     title: "fldy9hzQTKcViqN2W",
@@ -59,11 +61,19 @@ export const FIELDS = {
   },
 } as const;
 
+export type SkillProfile = {
+  count: 5 | 6;
+  skills: { name: string; score: number }[];
+  updatedAt: string;
+};
+
 export type Member = {
   id: string;
   name: string;
   role: string | null;
   isAdmin: boolean;
+  hasPasscode: boolean;
+  skillProfile: SkillProfile | null;
   avatar: {
     head: string | null;
     shirt: string | null;
@@ -162,6 +172,28 @@ async function listAll(
   return out;
 }
 
+function parseSkillProfile(raw: string | undefined): SkillProfile | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<SkillProfile>;
+    if (parsed.count !== 5 && parsed.count !== 6) return null;
+    if (!Array.isArray(parsed.skills) || parsed.skills.length !== parsed.count) {
+      return null;
+    }
+    const skills = parsed.skills.map((s) => ({
+      name: String(s?.name ?? "").slice(0, 80),
+      score: Math.max(1, Math.min(10, Number(s?.score ?? 1))),
+    }));
+    return {
+      count: parsed.count,
+      skills,
+      updatedAt: parsed.updatedAt ?? new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function toMember(r: AirtableRecord): Member {
   const f = r.fields;
   const get = (id: string) => f[id] as string | undefined;
@@ -170,6 +202,8 @@ function toMember(r: AirtableRecord): Member {
     name: (get(FIELDS.member.name) ?? "").trim(),
     role: get(FIELDS.member.role) ?? null,
     isAdmin: Boolean(f[FIELDS.member.isAdmin]),
+    hasPasscode: Boolean(get(FIELDS.member.passcodeHash)?.trim()),
+    skillProfile: parseSkillProfile(get(FIELDS.member.skillProfile)),
     avatar: {
       head: get(FIELDS.member.avatarHead) ?? null,
       shirt: get(FIELDS.member.avatarShirt) ?? null,
@@ -256,7 +290,7 @@ export async function listMembers(): Promise<Member[]> {
 export async function getMember(id: string): Promise<Member | null> {
   try {
     const res = await airtableFetch(`${TABLES.members}/${id}`, {
-      revalidate: 15,
+      revalidate: 0,
     });
     const rec = (await res.json()) as AirtableRecord;
     return toMember(rec);
@@ -268,15 +302,70 @@ export async function getMember(id: string): Promise<Member | null> {
 export async function createMember(input: {
   name: string;
   role?: string;
+  passcodeHash?: string;
 }): Promise<Member> {
+  const fields: Record<string, unknown> = {
+    [FIELDS.member.name]: input.name.trim(),
+  };
+  if (input.role) fields[FIELDS.member.role] = input.role;
+  if (input.passcodeHash) {
+    fields[FIELDS.member.passcodeHash] = input.passcodeHash;
+  }
   const res = await airtableFetch(TABLES.members, {
     method: "POST",
+    revalidate: 0,
+    body: JSON.stringify({ returnFieldsByFieldId: true, fields }),
+  });
+  const rec = (await res.json()) as AirtableRecord;
+  return toMember(rec);
+}
+
+export async function getMemberByName(name: string): Promise<Member | null> {
+  const target = name.trim().toLowerCase();
+  if (!target) return null;
+  const all = await listMembers();
+  return all.find((m) => m.name.trim().toLowerCase() === target) ?? null;
+}
+
+export async function getMemberPasscodeHash(id: string): Promise<string | null> {
+  try {
+    const res = await airtableFetch(`${TABLES.members}/${id}`, {
+      revalidate: 0,
+    });
+    const rec = (await res.json()) as AirtableRecord;
+    const raw = rec.fields[FIELDS.member.passcodeHash];
+    if (typeof raw !== "string" || !raw.trim()) return null;
+    return raw.trim();
+  } catch {
+    return null;
+  }
+}
+
+export async function updateMemberPasscode(
+  id: string,
+  passcodeHash: string
+): Promise<void> {
+  await airtableFetch(`${TABLES.members}/${id}`, {
+    method: "PATCH",
+    revalidate: 0,
+    body: JSON.stringify({
+      returnFieldsByFieldId: true,
+      fields: { [FIELDS.member.passcodeHash]: passcodeHash },
+    }),
+  });
+}
+
+export async function updateMemberSkillProfile(
+  id: string,
+  profile: SkillProfile
+): Promise<Member> {
+  const res = await airtableFetch(`${TABLES.members}/${id}`, {
+    method: "PATCH",
     revalidate: 0,
     body: JSON.stringify({
       returnFieldsByFieldId: true,
       fields: {
-        [FIELDS.member.name]: input.name.trim(),
-        ...(input.role ? { [FIELDS.member.role]: input.role } : {}),
+        [FIELDS.member.skillProfile]: JSON.stringify(profile),
       },
     }),
   });
